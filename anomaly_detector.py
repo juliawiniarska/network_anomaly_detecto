@@ -1,11 +1,8 @@
-# Krok 1: Instalacja wymaganych bibliotek
-# pip install scapy pandas scikit-learn matplotlib joblib smtplib flask sqlalchemy requests geoip2 twilio openpyxl
-
 import scapy.all as scapy
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 import matplotlib
-matplotlib.use('Agg')  # Wyłącza GUI Matplotlib
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 import joblib
 import smtplib
@@ -16,8 +13,6 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 import requests
 import os
-
-# Krok 2: Konfiguracja bazy danych
 
 Base = declarative_base()
 engine = create_engine('sqlite:///anomalies.db')
@@ -38,16 +33,12 @@ class Anomaly(Base):
 
 Base.metadata.create_all(engine)
 
-# Krok 3: Funkcja geolokalizacji IP
-
 def get_country(ip):
     try:
         response = requests.get(f"https://ipinfo.io/{ip}/json").json()
         return response.get("country", "Unknown")
     except:
         return "Unknown"
-
-# Krok 4: Klasyfikacja typów ataków
 
 def classify_attack(row):
     if row['protocol'] == 6 and row['dst_port'] in [22, 23, 3389]:
@@ -57,38 +48,32 @@ def classify_attack(row):
     else:
         return 'Unknown'
 
-# Krok 5: Funkcja do logowania anomalii do pliku
-
 def log_anomaly_to_file(anomalies):
     with open('anomalies_log.txt', 'a') as file:
         for _, row in anomalies.iterrows():
             file.write(f"[{datetime.now()}] SRC: {row['src_ip']} ({row['src_country']}) DST: {row['dst_ip']} SIZE: {row['packet_size']} PROTOCOL: {row['protocol']} PORT: {row['dst_port']} ATTACK: {row['attack_type']}\n")
 
-# Krok 6: Automatyczne blokowanie podejrzanych IP
-
 def block_ip(ip_address):
     if ip_address.startswith("192.168.") or ip_address == "127.0.0.1":
-        print(f"Nie można zablokować lokalnego IP: {ip_address}")
+        print(f"Cannot block local IP: {ip_address}")
         return
 
     command = f'netsh advfirewall firewall add rule name="Block_{ip_address}" dir=in action=block remoteip={ip_address} enable=yes'
     result = os.system(command)
 
     if result == 0:
-        print(f"Zablokowano IP: {ip_address}")
+        print(f"Blocked IP: {ip_address}")
     else:
-        print(f"Błąd blokowania IP: {ip_address}")
-
-# Krok 7: Wysyłanie alertu e-mail
+        print(f"Error blocking IP: {ip_address}")
 
 def send_email_alert(anomaly_count):
-    sender_email = "julciagim@gmail.com"
-    receiver_email = "paulaotfor@gmail.com"
-    password = "ioii godw jzqa xuwc"
+    sender_email = "your_email@gmail.com"
+    receiver_email = "receiver_email@gmail.com"
+    password = "your_password"
 
     msg = EmailMessage()
-    msg.set_content(f"Uwaga! Wykryto {anomaly_count} anomalii w ruchu sieciowym.")
-    msg['Subject'] = "Alert bezpieczeństwa - Wykryto anomalie"
+    msg.set_content(f"Attention! {anomaly_count} network anomalies detected.")
+    msg['Subject'] = "Security Alert - Network Anomalies Detected"
     msg['From'] = sender_email
     msg['To'] = receiver_email
 
@@ -96,11 +81,9 @@ def send_email_alert(anomaly_count):
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(sender_email, password)
             server.send_message(msg)
-        print("Wysłano alert e-mail.")
+        print("Email alert sent.")
     except Exception as e:
-        print(f"Błąd podczas wysyłania e-maila: {e}")
-
-# Krok 8: Rozbudowana analiza pakietów
+        print(f"Error sending email: {e}")
 
 def capture_packets(interface, packet_count):
     packets = scapy.sniff(iface=interface, count=packet_count)
@@ -119,8 +102,6 @@ def capture_packets(interface, packet_count):
             })
     return pd.DataFrame(packet_data)
 
-# Krok 9: Wykrywanie anomalii
-
 def detect_anomalies(dataframe):
     model = IsolationForest(contamination=0.01)
     features = dataframe[['packet_size', 'protocol', 'dst_port']]
@@ -138,31 +119,25 @@ def detect_anomalies(dataframe):
             block_ip(ip)
         save_anomaly_to_db(anomalies)
     else:
-        print("Nie wykryto żadnych anomalii.")
-
-# Krok 10: Wizualizacja anomalii na stronie
+        print("No anomalies detected.")
 
 def plot_anomalies():
-    # Tworzenie folderu 'static' jeśli nie istnieje
     if not os.path.exists('static'):
         os.makedirs('static')
 
     df = pd.read_sql(session.query(Anomaly).statement, session.bind)
     plt.figure(figsize=(10, 6))
-    plt.plot(df['timestamp'], df['packet_size'], label='Pakiety')
+    plt.plot(df['timestamp'], df['packet_size'], label='Packets')
     anomalies = df[df['attack_type'] != 'Unknown']
-    plt.scatter(anomalies['timestamp'], anomalies['packet_size'], color='red', label='Anomalie')
-    plt.xlabel('Czas')
-    plt.ylabel('Rozmiar pakietu (B)')
-    plt.title('Wykrywanie anomalii w ruchu sieciowym')
+    plt.scatter(anomalies['timestamp'], anomalies['packet_size'], color='red', label='Anomalies')
+    plt.xlabel('Time')
+    plt.ylabel('Packet Size (B)')
+    plt.title('Network Traffic Anomalies')
     plt.legend()
     plt.grid(True)
-    
-    # Zapis wykresu do katalogu 'static'
+
     plt.savefig('static/anomaly_plot.png')
-    plt.close()  # Zamknięcie figury, aby uniknąć ostrzeżeń
-
-
+    plt.close()
 
 def save_anomaly_to_db(anomalies):
     for _, row in anomalies.iterrows():
@@ -177,9 +152,7 @@ def save_anomaly_to_db(anomalies):
         )
         session.add(anomaly)
     session.commit()
-    print("Anomalie zapisane do bazy danych.")
-
-# Krok 11: Interfejs webowy
+    print("Anomalies saved to the database.")
 
 app = Flask(__name__)
 
@@ -187,7 +160,7 @@ app = Flask(__name__)
 def dashboard():
     plot_anomalies()
     anomalies = session.query(Anomaly).all()
-    lang = request.args.get('lang', 'pl')  # Domyślnie język polski
+    lang = request.args.get('lang', 'en')
     return render_template('dashboard.html', anomalies=anomalies, lang=lang)
 
 @app.route('/export')
@@ -195,8 +168,6 @@ def export():
     df = pd.read_sql(session.query(Anomaly).statement, session.bind)
     df.to_excel('anomalies_report.xlsx', index=False)
     return send_file('anomalies_report.xlsx', as_attachment=True)
-
-# Krok 12: Uruchomienie programu
 
 def main():
     df = capture_packets(interface='Wi-Fi', packet_count=100)

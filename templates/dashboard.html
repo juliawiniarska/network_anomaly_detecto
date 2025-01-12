@@ -70,7 +70,6 @@
 </head>
 <body>
 
-    <!-- 🌐 Przełącznik języka -->
     <div class="lang-toggle">
         <a href="/?lang=pl" class="{{ 'active' if lang == 'pl' else '' }}">POL</a> |
         <a href="/?lang=en" class="{{ 'active' if lang == 'en' else '' }}">ENG</a>
@@ -78,7 +77,6 @@
 
     <h1>{{ '📊 Wykryte Anomalie Sieciowe' if lang == 'pl' else '📊 Detected Network Anomalies' }}</h1>
 
-    <!-- 🔎 Opis projektu -->
     <div class="description">
         <h2>{{ '🔍 Cel projektu' if lang == 'pl' else '🔍 Project Purpose' }}</h2>
         <p>
@@ -123,7 +121,6 @@
         {% endfor %}
     </table>
 
-    <!-- 📝 Legenda -->
     <div class="legend">
         <h3>{{ '📖 Legenda' if lang == 'pl' else '📖 Legend' }}</h3>
         <ul>
